@@ -1,0 +1,21 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$code": {
+        ".read": "$code.matches(/^[a-z0-9-]{4,30}$/)",
+        ".write": "$code.matches(/^[a-z0-9-]{4,30}$/)",
+        "meta": {
+          "memo": { ".validate": "newData.isString() && newData.val().length <= 2000" }
+        },
+        "timers": {
+          "$tid": { ".validate": "newData.hasChildren(['name', 'cd']) && newData.child('name').isString() && newData.child('name').val().length <= 24" }
+        },
+        "presence": {
+          "$pid": { ".validate": "newData.hasChildren(['nick'])" }
+        }
+      }
+    }
+  }
+}

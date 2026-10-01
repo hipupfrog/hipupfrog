@@ -1,0 +1,16 @@
+{
+  "name": "석류 레이드 타이머",
+  "short_name": "석류 타이머",
+  "description": "석류 길드 레이드 공용 쿨타임 타이머",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1c0a0f",
+  "theme_color": "#2a1017",
+  "lang": "ko",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

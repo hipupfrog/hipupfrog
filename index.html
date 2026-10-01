@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2a1017">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="석류 타이머">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>석류 레이드 타이머</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f8efe9;--surface:#fffaf7;--surface2:#f3e2dc;--line:#e6cbc3;--text:#3a121b;--muted:#85555e;
+  --ruby:#b81f39;--aril:#d93a55;--leaf:#4a7a1e;--amber:#a86400;--track:#ecd6cf;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1c0a0f;--surface:#2a1017;--surface2:#361520;--line:#4d1d2a;--text:#f6e7e3;--muted:#c3949c;
+    --ruby:#d42a45;--aril:#ff6b81;--leaf:#9cc45f;--amber:#f2b453;--track:#46192a;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1c0a0f;--surface:#2a1017;--surface2:#361520;--line:#4d1d2a;--text:#f6e7e3;--muted:#c3949c;
+  --ruby:#d42a45;--aril:#ff6b81;--leaf:#9cc45f;--amber:#f2b453;--track:#46192a;color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--text);font-family:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+.num{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+button{font:inherit;color:inherit;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer;min-height:40px;touch-action:manipulation}
+button:hover:not(:disabled){border-color:var(--aril)}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--aril);outline-offset:2px}
+.primary{background:var(--ruby);color:#fff;border-color:transparent;font-weight:700}
+.armed{background:var(--ruby)!important;color:#fff!important}
+.ic{width:34px;height:34px;min-height:34px;padding:0;display:inline-grid;place-items:center;background:transparent;border-color:transparent;color:var(--muted)}
+.ic svg{width:18px;height:18px}
+input,textarea,select{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:10px}
+label>input,label>select{margin-top:4px}
+[hidden]{display:none!important}
+
+.lobby{min-height:100vh;display:grid;place-items:center;padding:24px 16px}
+.lcard{width:min(380px,100%)}
+.lcard .mark{width:64px;height:64px;display:block;margin-bottom:12px}
+.lcard h1{font-size:26px;margin:0 0 4px;letter-spacing:-.02em}
+.lcard p{margin:0 0 20px}
+.lcard .primary{width:100%;margin-top:6px;min-height:46px}
+.lcard .ghost{width:100%;margin-top:8px}
+.small{font-size:13px}
+.note{font-size:12px;color:var(--muted);border-top:1px solid var(--line);margin-top:18px;padding-top:12px}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;margin-right:auto}
+.brand svg{width:30px;height:30px}
+.brand small{display:block;font-weight:500;font-size:11px;color:var(--muted);line-height:1}
+.status{display:flex;align-items:center;gap:10px;font-size:13px;flex-wrap:wrap}
+.chip{padding:3px 10px;border-radius:999px;background:var(--surface2);border:1px solid var(--line)}
+.conn{display:inline-flex;align-items:center;gap:6px}
+.conn i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.conn[data-s="live"] i{background:var(--leaf)} .conn[data-s="live"]{color:var(--leaf);font-weight:700}
+.conn[data-s="wait"] i{background:var(--amber)}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+.tools button:not(.ic){font-size:13px;padding:6px 10px;min-height:34px}
+
+main.app{max-width:1200px;margin:0 auto;padding:16px 16px 112px}
+.global{display:grid;gap:14px;grid-template-columns:1fr;margin-bottom:24px}
+@media (min-width:760px){.global{grid-template-columns:auto 1fr;align-items:start}}
+.clear{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.lbl{font-size:13px;color:var(--muted);font-weight:500}
+.big{font-size:44px;font-weight:700;line-height:1;letter-spacing:-.02em;min-width:4.2ch}
+.memo{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:10px 12px;min-width:0}
+.mhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.mhead button{min-height:30px;padding:2px 10px;font-size:13px}
+.mbody{white-space:pre-wrap;word-break:break-all;font-size:14px}
+.memo textarea{min-height:92px;resize:vertical}
+.mrow{display:flex;gap:6px;justify-content:flex-end;margin-top:6px}
+
+.group{margin-bottom:28px}
+.ghead{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.ghead h2{font-size:17px;margin:0 auto 0 0;display:flex;align-items:baseline;gap:8px}
+.ghead h2 span{font-size:13px;font-weight:500;color:var(--muted)}
+.ghead button{min-height:32px;padding:4px 10px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:12px}
+.empty{padding:32px 16px;text-align:center;border:1px dashed var(--line);border-radius:16px}
+.empty .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:8px 10px 10px;min-width:0}
+.card.on{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}
+.chead{display:flex;align-items:center}
+.nm{flex:1;min-width:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:2px}
+.seed{position:relative;display:block;width:min(100%,150px);aspect-ratio:1;margin:2px auto 6px;padding:0;border:none;border-radius:50%;background:none;min-height:0}
+.seed svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.trk{fill:var(--surface2);stroke:var(--track);stroke-width:8}
+.prg{fill:none;stroke:var(--leaf);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .25s linear,stroke .2s}
+.face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.tt{font-size:clamp(24px,6.6vw,32px);font-weight:700;line-height:1;color:var(--leaf)}
+.ts{font-size:12px;color:var(--muted)}
+.card[data-st="run"] .tt{color:var(--text)} .card[data-st="run"] .prg{stroke:var(--ruby)}
+.card[data-st="soon"] .tt{color:var(--amber)} .card[data-st="soon"] .prg{stroke:var(--amber)}
+.adj{display:flex;align-items:center;gap:6px}
+.adj button{min-width:46px;min-height:34px;padding:4px 6px;font-size:13px}
+.dur{flex:1;text-align:center;font-size:12px;color:var(--muted)}
+.card.on .dur{color:var(--amber);font-weight:700}
+
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));overflow-x:auto}
+.bar-in{display:flex;gap:8px;width:max-content;margin:0 auto}
+.bar button{white-space:nowrap}
+
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(10,2,5,.6);display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:min(440px,100%);max-height:88vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:18px 18px 0 0;padding:14px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+@media (min-width:600px){.overlay{align-items:center;padding:16px}.sheet{border-radius:18px}}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.mh h3{margin:0;font-size:17px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{font-size:12px;color:var(--muted);margin:-4px 0 8px}
+.err{font-size:13px;color:var(--aril);min-height:1em;margin:0 0 8px}
+.wide{width:100%;min-height:44px}
+.sheet textarea{min-height:180px;font-size:12px}
+.toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--text);color:var(--bg);padding:9px 14px;border-radius:10px;font-size:13px;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:reduce){.prg{transition:none}}
+</style>
+<script src="firebase-config.js"></script>
+</head>
+<body>
+
+<main id="lobby" class="lobby">
+  <div class="lcard">
+    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M24 12l3-7 5 5 5-5 3 7" fill="none" stroke="#6f8f32" stroke-width="3" stroke-linejoin="round"/>
+      <circle cx="32" cy="36" r="24" fill="#c0233c"/><circle cx="32" cy="36" r="15" fill="#7a0f22"/>
+      <g fill="#ff8497"><ellipse cx="27" cy="31" rx="3" ry="4"/><ellipse cx="36" cy="30" rx="3" ry="4"/><ellipse cx="32" cy="38" rx="3" ry="4"/><ellipse cx="25" cy="41" rx="3" ry="4"/><ellipse cx="39" cy="40" rx="3" ry="4"/></g>
+    </svg>
+    <h1>석류 레이드 타이머</h1>
+    <p class="muted">같은 방 코드로 들어온 인원끼리 타이머를 실시간으로 함께 봅니다.</p>
+    <label>닉네임<input id="nick" maxlength="16" autocomplete="nickname" placeholder="게임 닉네임"></label>
+    <label>방 코드<input id="rcode" maxlength="30" autocapitalize="off" autocomplete="off" placeholder="예: seokryu-0928"></label>
+    <button class="primary" id="enter">입장</button>
+    <button class="ghost" id="install" hidden>바탕화면·홈 화면에 앱 설치</button>
+    <p id="lmsg" class="muted small" style="margin-top:10px"></p>
+    <p id="ioshint" class="note" hidden>아이폰·아이패드: Safari 하단 공유 버튼 → ‘홈 화면에 추가’를 누르면 앱처럼 실행됩니다.</p>
+    <p id="synchint" class="note" hidden>실시간 공유 설정 전이라 이 기기에서만 저장됩니다. 공대장에게 설정된 주소를 받아 접속하세요.</p>
+  </div>
+</main>
+
+<div id="app" hidden>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M24 12l3-7 5 5 5-5 3 7" fill="none" stroke="#6f8f32" stroke-width="4" stroke-linejoin="round"/><circle cx="32" cy="36" r="24" fill="#c0233c"/><circle cx="32" cy="36" r="13" fill="#7a0f22"/></svg>
+      <div>석류<small>레이드 타이머</small></div>
+    </div>
+    <div class="status">
+      <span class="chip">방 <b id="code" class="num"></b></span>
+      <span id="conn" class="conn"><i></i><span></span></span>
+      <span id="mem" class="muted"></span>
+    </div>
+    <div class="tools">
+      <button id="theme" class="ic" aria-label="밝기 전환"></button>
+      <button data-act="invite">초대 링크</button>
+      <button data-act="reset-all">모두 초기화</button>
+      <button data-act="leave">나가기</button>
+    </div>
+  </header>
+  <main class="app">
+    <section class="global">
+      <div class="clear">
+        <span class="lbl">클리어 타임</span>
+        <span id="clear" class="big num">00:00</span>
+        <button data-act="clear-toggle" id="clearBtn" class="primary">시작</button>
+        <button data-act="clear-reset">초기화</button>
+      </div>
+      <div id="memo" class="memo"></div>
+    </section>
+    <div id="groups"></div>
+  </main>
+  <nav class="bar" aria-label="방 관리">
+    <div class="bar-in">
+      <button data-act="add-group">파티 추가</button>
+      <button data-act="add-timer">타이머 추가</button>
+      <button data-act="gimmick">기믹 타이머</button>
+      <button data-act="save">설정 내보내기</button>
+      <button data-act="load">설정 가져오기</button>
+    </div>
+  </nav>
+</div>
+
+<div id="modal" class="overlay" hidden></div>
+<div id="toast" class="toast" hidden role="status"></div>
+
+<script>
+/* ───────── 설정 ───────── */
+const STEP = 30, CD_ALERTS = [10, 5, 0], DUR_ALERT = 5, CIRC = 2 * Math.PI * 52;
+const FB_VER = "10.12.2";
+
+/* ───────── 유틸 ───────── */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2, "0");
+const fmt = (sec, up) => { const v = Math.max(0, up ? Math.floor(sec) : Math.ceil(sec)); const h = Math.floor(v/3600), m = Math.floor(v%3600/60), s = v%60; return h ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`; };
+const uid = () => Math.random().toString(36).slice(2, 10);
+const okId = id => /^[A-Za-z0-9_-]{1,40}$/.test(id);
+const parseT = s => { s = String(s).trim(); if (!s) return 0; if (s.includes(":")) { const [m, x] = s.split(":"); const v = (+m)*60 + (+x || 0); return Number.isFinite(v) ? v : NaN; } const v = +s; return Number.isFinite(v) ? v : NaN; };
+const ls = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const clone = o => JSON.parse(JSON.stringify(o ?? null));
+const arr = x => Array.isArray(x) ? x.filter(v => v != null) : Object.values(x || {});
+const ICON = {
+  on:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>',
+  off:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m22 9-6 6M16 9l6 6"/></svg>',
+  reset:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>'
+};
+
+/* ───────── 상태 ───────── */
+const emptyRoom = () => ({ memo: "", groups: [], clear: { running: false, startAt: null, acc: 0 } });
+const normRoom = v => {
+  v = v || {};
+  return {
+    memo: String(v.memo || ""),
+    groups: arr(v.groups).map(g => ({ id: String(g.id), name: String(g.name || "파티"), timerIds: arr(g.timerIds).map(String) })),
+    clear: { running: !!v.clear?.running, startAt: v.clear?.startAt ?? null, acc: +v.clear?.acc || 0 }
+  };
+};
+const S = { nick: "", code: "", mode: "local", connected: false, members: 1, room: emptyRoom(), timers: {}, muted: ls.get("sr.muted", {}), editingMemo: false };
+
+/* ───────── Firebase 실시간 공유 ─────────
+ * rooms/{code}/meta       : 메모·파티 구성·클리어 타임
+ * rooms/{code}/timers/{id}: 개별 타이머(종료시각은 서버 시계 기준)
+ * rooms/{code}/presence   : 접속자(연결 끊기면 자동 삭제)
+ */
+let offset = 0; const now = () => Date.now() + offset; // 서버 시계 보정 → 기기 간 오차 제거
+let rdb = null, metaRef = null, timersRef = null, presRef = null, myPres = null, offs = [];
+const loadScript = src => new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); });
+const fbP = (async () => {
+  const cfg = window.FIREBASE_CONFIG;
+  if (!cfg || !cfg.databaseURL) return null;
+  try {
+    await loadScript(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-app-compat.js`);
+    await loadScript(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-database-compat.js`);
+    const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(cfg);
+    const db = firebase.database(app);
+    db.ref(".info/serverTimeOffset").on("value", s => { offset = s.val() || 0; });
+    return db;
+  } catch { return null; }
+})();
+const listen = (ref, cb) => { ref.on("value", cb, () => fallbackLocal("방 데이터에 접근할 수 없어 이 기기 전용으로 바꿨습니다.")); offs.push(() => ref.off("value", cb)); };
+const onWriteErr = () => toast("동기화에 실패했습니다. 인터넷 연결을 확인하세요.");
+const timerBody = t => ({ name: t.name, cd: t.cd, dur: t.dur, endAt: t.endAt ?? null, durEndAt: t.durEndAt ?? null });
+function persistLocal() { if (S.mode === "local" && S.code) ls.set("sr.room." + S.code, { room: S.room, timers: S.timers }); }
+function saveRoom() { if (S.mode === "shared") metaRef.set(clone(S.room)).catch(onWriteErr); else persistLocal(); }
+function saveTimer(id) { const t = S.timers[id]; if (!t) return; if (S.mode === "shared") timersRef.child(id).set(timerBody(t)).catch(onWriteErr); else persistLocal(); }
+function dropTimer(id) { if (S.mode === "shared") timersRef.child(id).remove().catch(onWriteErr); }
+
+function stopSync() {
+  offs.forEach(f => { try { f(); } catch {} }); offs = [];
+  if (myPres) { myPres.onDisconnect().cancel(); myPres.remove().catch(() => {}); myPres = null; }
+}
+function startLocal() {
+  const saved = ls.get("sr.room." + S.code, null);
+  S.mode = "local";
+  S.room = saved?.room ? normRoom(saved.room) : emptyRoom();
+  S.timers = saved?.timers || {};
+  renderAll(true);
+}
+function fallbackLocal(msg) { if (S.mode === "local") return; stopSync(); S.mode = "local"; persistLocal(); renderAll(true); toast(msg); }
+function startShared(db) {
+  S.mode = "shared";
+  const room = db.ref("rooms/" + S.code);
+  metaRef = room.child("meta"); timersRef = room.child("timers"); presRef = room.child("presence");
+  listen(metaRef, s => { S.room = normRoom(s.val()); renderAll(); });
+  listen(timersRef, s => { const v = s.val() || {}; const t = {}; Object.keys(v).forEach(k => t[k] = { id: k, ...v[k] }); S.timers = t; renderAll(); });
+  listen(presRef, s => { S.members = s.numChildren(); renderStatus(); });
+  const conn = db.ref(".info/connected");
+  const onConn = s => {
+    S.connected = !!s.val();
+    if (S.connected) {
+      if (myPres) myPres.remove().catch(() => {});
+      myPres = presRef.push();
+      myPres.onDisconnect().remove();
+      myPres.set({ nick: S.nick.slice(0, 16), at: firebase.database.ServerValue.TIMESTAMP }).catch(() => {});
+    }
+    renderStatus();
+  };
+  conn.on("value", onConn); offs.push(() => conn.off("value", onConn));
+}
+
+/* ───────── 입장/퇴장 ───────── */
+async function enterRoom(code, nick) {
+  S.code = code; S.nick = nick; S.members = 1; S.connected = false;
+  ls.set("sr.last", { code, nick });
+  history.replaceState(null, "", location.pathname + "?room=" + encodeURIComponent(code));
+  $("#lobby").hidden = true; $("#app").hidden = false;
+  S.room = emptyRoom(); S.timers = {}; S.mode = "wait"; renderAll(true);
+  const db = await fbP;
+  if (db) { rdb = db; startShared(db); } else startLocal();
+  keepAwake();
+}
+function leaveRoom() {
+  stopSync(); S.code = ""; S.editingMemo = false; lastSig = "";
+  history.replaceState(null, "", location.pathname);
+  $("#app").hidden = true; $("#lobby").hidden = false;
+}
+
+/* ───────── 동작 ───────── */
+const A = {
+  start(id) { const t = S.timers[id], n = now(); t.endAt = n + t.cd*1000; t.durEndAt = t.dur > 0 ? n + t.dur*1000 : null; beep(660, 60); saveTimer(id); tick(); },
+  reset(id) { const t = S.timers[id]; t.endAt = null; t.durEndAt = null; saveTimer(id); tick(); },
+  adjust(id, d) { const t = S.timers[id], n = now(); if (t.endAt && t.endAt > n) t.endAt = Math.max(n, t.endAt + d*1000); else t.cd = Math.max(STEP, t.cd + d); saveTimer(id); tick(); },
+  mute(id) { S.muted[id] = !S.muted[id]; ls.set("sr.muted", S.muted); renderGroups(true); tick(); },
+  resetAll() { Object.keys(S.timers).forEach(id => { const t = S.timers[id]; if (t.endAt || t.durEndAt) { t.endAt = null; t.durEndAt = null; saveTimer(id); } }); tick(); },
+  clearToggle() { const c = S.room.clear, n = now(); S.room.clear = c.running ? { running: false, startAt: null, acc: c.acc + (n - c.startAt) } : { ...c, running: true, startAt: n }; saveRoom(); renderStatus(); },
+  clearReset() { S.room.clear = { running: false, startAt: null, acc: 0 }; saveRoom(); renderStatus(); },
+  addGroup(name) { S.room.groups.push({ id: uid(), name, timerIds: [] }); saveRoom(); renderAll(); },
+  delGroup(gid) { const g = S.room.groups.find(x => x.id === gid); if (!g) return; g.timerIds.forEach(id => { delete S.timers[id]; dropTimer(id); }); S.room.groups = S.room.groups.filter(x => x.id !== gid); saveRoom(); renderAll(); },
+  moveGroup(gid, dir) { const gs = S.room.groups, i = gs.findIndex(x => x.id === gid), j = i + dir; if (i < 0 || j < 0 || j >= gs.length) return; [gs[i], gs[j]] = [gs[j], gs[i]]; saveRoom(); renderAll(); },
+  addTimer(gid, name, cd, dur) { const id = uid(); S.timers[id] = { id, name, cd, dur, endAt: null, durEndAt: null }; S.room.groups.find(x => x.id === gid).timerIds.push(id); saveTimer(id); saveRoom(); renderAll(); },
+  delTimer(id) { delete S.timers[id]; dropTimer(id); S.room.groups.forEach(g => g.timerIds = g.timerIds.filter(x => x !== id)); saveRoom(); renderAll(); },
+  preset(gname, list) { const g = { id: uid(), name: gname, timerIds: [] }; list.forEach(([name, cd, dur]) => { const id = uid(); S.timers[id] = { id, name, cd, dur, endAt: null, durEndAt: null }; g.timerIds.push(id); saveTimer(id); }); S.room.groups.push(g); saveRoom(); renderAll(); },
+  gimmick() { if (S.room.groups.some(g => g.name === "기믹")) return toast("기믹 파티가 이미 있습니다."); A.preset("기믹", [["유혹 주기", 90, 0], ["언데드", 15, 0], ["물약봉인", 5, 0]]); },
+  example() { A.preset("1. 유혹팟", [1,2,3,4,5,6].map(n => [`유혹 ${n}순번`, 600, 60])); A.preset("2. 딜시프팟", [1,2,3,4,5,6].map(n => [`딜시프 ${n}`, 600, 60])); },
+  setMemo(txt) { S.room.memo = txt.slice(0, 2000); saveRoom(); }
+};
+
+function exportData() {
+  const timers = {}; Object.values(S.timers).forEach(t => timers[t.id] = { name: t.name, cd: t.cd, dur: t.dur });
+  return JSON.stringify({ v: 1, room: { memo: S.room.memo, groups: S.room.groups }, timers }, null, 2);
+}
+function importData(d) {
+  const room = d?.room?.groups ? d.room : (Array.isArray(d?.groups) ? { memo: d.memo, groups: d.groups } : null);
+  if (!room || !Array.isArray(room.groups)) throw new Error("bad");
+  const remap = {}, timers = {};
+  Object.entries(d.timers || {}).forEach(([k, v]) => {
+    const id = okId(k) ? k : uid(); remap[k] = id;
+    timers[id] = { id, name: String(v.name || "타이머").slice(0, 24), cd: Math.max(1, +(v.cd ?? v.cooldown) || 600), dur: Math.max(0, +(v.dur ?? v.duration) || 0), endAt: null, durEndAt: null };
+  });
+  const groups = room.groups.map(g => ({ id: okId(String(g.id)) ? String(g.id) : uid(), name: String(g.name || "파티").slice(0, 24), timerIds: (g.timerIds || []).map(x => remap[x]).filter(x => x && timers[x]) }));
+  Object.keys(S.timers).filter(id => !timers[id]).forEach(dropTimer);
+  S.timers = timers;
+  S.room = { memo: String(room.memo || "").slice(0, 2000), groups, clear: S.room.clear };
+  Object.keys(timers).forEach(saveTimer); saveRoom(); renderAll(true);
+}
+
+/* ───────── 렌더 ───────── */
+function renderStatus() {
+  $("#code").textContent = S.code;
+  const c = $("#conn");
+  const st = S.mode === "local" ? "local" : S.mode === "shared" && S.connected ? "live" : "wait";
+  c.dataset.s = st;
+  $("#conn span").textContent = st === "local" ? "이 기기 전용" : st === "live" ? "실시간 연결" : "연결 중";
+  $("#mem").textContent = S.mode === "shared" ? `${S.members}명 접속` : "";
+  $("#clearBtn").textContent = S.room.clear.running ? "정지" : "시작";
+}
+function renderMemo() {
+  if (S.editingMemo) return;
+  $("#memo").innerHTML = `<div class="mhead"><span class="lbl">메모</span><button data-act="memo-edit">편집</button></div>
+    <div class="mbody num">${S.room.memo ? esc(S.room.memo) : '<span class="muted">기믹 시간, 팔 체력 등을 적어 두세요.</span>'}</div>`;
+}
+function cardHTML(t) {
+  const m = !!S.muted[t.id];
+  return `<article class="card" data-tid="${esc(t.id)}">
+    <div class="chead">
+      <span class="nm" title="${esc(t.name)}">${esc(t.name)}</span>
+      <button class="ic" data-act="mute" aria-label="${m ? "알림 켜기" : "알림 끄기"}">${m ? ICON.off : ICON.on}</button>
+      <button class="ic" data-act="reset" aria-label="초기화">${ICON.reset}</button>
+      <button class="ic" data-act="t-del" aria-label="삭제">${ICON.x}</button>
+    </div>
+    <button class="seed" data-act="start" aria-label="${esc(t.name)} 시작">
+      <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle class="prg" cx="60" cy="60" r="52" stroke-dasharray="${CIRC}" stroke-dashoffset="0"/></svg>
+      <span class="face"><span class="tt num"></span><span class="ts"></span></span>
+    </button>
+    <div class="adj"><button data-act="minus" aria-label="${STEP}초 감소">−${STEP}</button><span class="dur num"></span><button data-act="plus" aria-label="${STEP}초 증가">+${STEP}</button></div>
+  </article>`;
+}
+let lastSig = "";
+function renderGroups(force) {
+  const gs = S.room.groups;
+  // 구성이 그대로면 DOM을 다시 그리지 않음(시간 변화는 tick이 처리) → 깜빡임·오터치 방지
+  const sig = JSON.stringify([S.mode, gs, gs.flatMap(g => g.timerIds.map(id => S.timers[id]?.name ?? null))]);
+  if (!force && sig === lastSig) return;
+  lastSig = sig;
+  const el = $("#groups");
+  if (!gs.length) {
+    el.innerHTML = S.mode === "wait" ? `<p class="muted" style="text-align:center">방에 연결하는 중…</p>` :
+      `<div class="empty"><b>아직 파티가 없습니다</b><p class="muted small" style="margin:6px 0 0">파티를 만든 뒤 파티원별 타이머를 추가하세요.</p>
+      <div class="row"><button data-act="add-group" class="primary">파티 추가</button><button data-act="example">예시 구성 넣기</button></div></div>`;
+    return;
+  }
+  el.innerHTML = gs.map((g, i) => {
+    const ts = g.timerIds.map(id => S.timers[id]).filter(Boolean);
+    return `<section class="group" data-gid="${esc(g.id)}">
+      <div class="ghead">
+        <h2>${esc(g.name)} <span>${ts.length}</span></h2>
+        <button data-act="g-up" aria-label="위로" ${i === 0 ? "disabled" : ""}>▲</button>
+        <button data-act="g-down" aria-label="아래로" ${i === gs.length - 1 ? "disabled" : ""}>▼</button>
+        <button data-act="g-add">타이머 추가</button>
+        <button data-act="g-del">삭제</button>
+      </div>
+      ${ts.length ? `<div class="grid">${ts.map(cardHTML).join("")}</div>` : `<p class="muted small">‘타이머 추가’로 파티원을 넣으세요.</p>`}
+    </section>`;
+  }).join("");
+}
+function renderAll(force) { renderStatus(); renderMemo(); renderGroups(force); tick(); }
+
+/* ───────── 틱 + 알림 ───────── */
+const fired = {};
+function alertOnce(key, f, ms, vib) { if (fired[key]) return; fired[key] = 1; beep(f, ms); try { navigator.vibrate && navigator.vibrate(vib); } catch {} }
+function tick() {
+  if (!S.code) return;
+  const n = now();
+  document.querySelectorAll(".card").forEach(c => {
+    const t = S.timers[c.dataset.tid]; if (!t) return;
+    const running = !!t.endAt && t.endAt > n;
+    const left = running ? (t.endAt - n) / 1000 : t.cd;
+    const dl = t.durEndAt && t.durEndAt > n ? (t.durEndAt - n) / 1000 : null;
+    const st = !running ? "ready" : left <= 10 ? "soon" : "run";
+    if (c.dataset.st !== st) c.dataset.st = st;
+    c.querySelector(".tt").textContent = fmt(left);
+    c.querySelector(".ts").textContent = st === "ready" ? "준비" : st === "soon" ? "곧 준비" : "쿨타임";
+    const frac = running ? Math.min(1, left / Math.max(1, t.cd)) : 1;
+    c.querySelector(".prg").setAttribute("stroke-dashoffset", String(CIRC * (1 - frac)));
+    c.querySelector(".dur").textContent = t.dur > 0 ? `지속 ${fmt(dl ?? t.dur)}` : "";
+    c.classList.toggle("on", dl !== null);
+    if (!S.muted[t.id]) {
+      if (t.endAt) { const l = Math.ceil((t.endAt - n) / 1000); CD_ALERTS.forEach(sec => { if (l <= sec && l > sec - 2) alertOnce(`${t.id}:${t.endAt}:${sec}`, sec === 0 ? 1320 : 880, sec === 0 ? 400 : 160, sec === 0 ? [200, 80, 200] : 80); }); }
+      if (t.durEndAt) { const l = Math.ceil((t.durEndAt - n) / 1000); if (l <= DUR_ALERT && l > DUR_ALERT - 2) alertOnce(`${t.id}:${t.durEndAt}:d`, 520, 300, [120, 60, 120]); }
+    }
+  });
+  const cl = S.room.clear;
+  $("#clear").textContent = fmt((cl.acc + (cl.running ? n - cl.startAt : 0)) / 1000, true);
+}
+setInterval(tick, 250);
+
+/* ───────── 소리·화면 유지 ───────── */
+let ac = null;
+function unlockAudio() { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === "suspended") ac.resume(); } catch {} }
+function beep(f = 880, ms = 160) { if (!ac) return; try { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.value = 0.08; o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + ms / 1000); } catch {} }
+document.addEventListener("pointerdown", unlockAudio);
+async function keepAwake() { try { if ("wakeLock" in navigator && document.visibilityState === "visible") await navigator.wakeLock.request("screen"); } catch {} }
+document.addEventListener("visibilitychange", () => { if (S.code && document.visibilityState === "visible") keepAwake(); });
+
+/* ───────── 토스트·모달 ───────── */
+let toastT;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2800); }
+function openModal(title, html, mount) {
+  const m = $("#modal");
+  m.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="mt"><div class="mh"><h3 id="mt">${esc(title)}</h3><button class="ic" data-close aria-label="닫기">${ICON.x}</button></div>${html}</div>`;
+  m.hidden = false; mount && mount(m);
+  const f = m.querySelector("input,textarea,select"); f && f.focus();
+}
+function closeModal() { const m = $("#modal"); m.hidden = true; m.innerHTML = ""; }
+$("#modal").addEventListener("click", e => { if (e.target.id === "modal" || e.target.closest("[data-close]")) closeModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#modal").hidden) closeModal(); });
+function enterSubmits(m, btn) { m.querySelectorAll("input").forEach(i => i.addEventListener("keydown", e => { if (e.key === "Enter") btn.click(); })); }
+
+function modalAddGroup() {
+  openModal("파티 추가", `<label>파티 이름<input id="f-n" maxlength="24" placeholder="예: 3. 전사팟"></label><p class="err" id="f-e"></p><button class="primary wide" id="f-ok">추가</button>`, m => {
+    const ok = $("#f-ok", m); enterSubmits(m, ok);
+    ok.onclick = () => { const n = $("#f-n", m).value.trim(); if (!n) return $("#f-e", m).textContent = "파티 이름을 입력하세요."; A.addGroup(n); closeModal(); };
+  });
+}
+function modalAddTimer(gid) {
+  if (!S.room.groups.length) { toast("먼저 파티를 추가하세요."); return modalAddGroup(); }
+  openModal("타이머 추가", `
+    <label>파티<select id="f-g">${S.room.groups.map(g => `<option value="${esc(g.id)}" ${g.id === gid ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select></label>
+    <label>이름<input id="f-n" maxlength="24" placeholder="닉네임 또는 스킬명"></label>
+    <div class="two"><label>쿨타임<input id="f-cd" value="10:00" inputmode="numeric"></label><label>지속<input id="f-du" value="01:00" inputmode="numeric"></label></div>
+    <p class="hint">분:초 또는 초 단위로 입력합니다. 지속을 0으로 두면 표시하지 않습니다.</p>
+    <p class="err" id="f-e"></p><button class="primary wide" id="f-ok">추가</button>`, m => {
+    const ok = $("#f-ok", m), err = s => $("#f-e", m).textContent = s; enterSubmits(m, ok);
+    ok.onclick = () => {
+      const n = $("#f-n", m).value.trim(), cd = parseT($("#f-cd", m).value), du = parseT($("#f-du", m).value);
+      if (!n) return err("이름을 입력하세요.");
+      if (!(cd >= 1)) return err("쿨타임을 1초 이상으로 입력하세요. 예: 10:00");
+      if (!(du >= 0)) return err("지속을 0 이상으로 입력하세요. 예: 01:00");
+      A.addTimer($("#f-g", m).value, n, Math.round(cd), Math.round(du)); closeModal();
+    };
+  });
+}
+function modalSave() {
+  openModal("설정 내보내기", `<p class="hint" style="margin:0 0 8px">파티·타이머 구성을 텍스트로 보관합니다. 다른 방에서 ‘설정 가져오기’에 붙여 넣으면 같은 구성이 만들어집니다.</p>
+    <textarea id="f-j" readonly class="num"></textarea><button class="primary wide" id="f-ok" style="margin-top:8px">복사</button>`, m => {
+    $("#f-j", m).value = exportData();
+    $("#f-ok", m).onclick = async () => { try { await navigator.clipboard.writeText($("#f-j", m).value); toast("복사했습니다."); } catch { $("#f-j", m).select(); toast("자동 복사가 막혀 있습니다. 선택된 내용을 직접 복사하세요."); } };
+  });
+}
+function modalLoad() {
+  openModal("설정 가져오기", `<p class="hint" style="margin:0 0 8px">현재 방의 파티·타이머가 붙여 넣은 구성으로 바뀝니다. 방 전원에게 적용됩니다.</p>
+    <textarea id="f-j" class="num" placeholder="내보낸 설정을 붙여 넣으세요"></textarea><p class="err" id="f-e" style="margin-top:6px"></p><button class="primary wide" id="f-ok">가져오기</button>`, m => {
+    $("#f-ok", m).onclick = () => { try { importData(JSON.parse($("#f-j", m).value)); closeModal(); toast("구성을 가져왔습니다."); } catch { $("#f-e", m).textContent = "형식이 맞지 않습니다. ‘설정 내보내기’에서 복사한 내용 전체를 붙여 넣으세요."; } };
+  });
+}
+async function invite() {
+  const url = location.origin + location.pathname + "?room=" + encodeURIComponent(S.code);
+  try { if (navigator.share) { await navigator.share({ title: "석류 레이드 타이머", text: `방 코드 ${S.code}`, url }); return; } } catch { return; }
+  try { await navigator.clipboard.writeText(url); toast("초대 링크를 복사했습니다."); } catch { openModal("초대 링크", `<input readonly value="${esc(url)}">`); }
+}
+function twice(btn, fn) {
+  if (btn.dataset.armed && Date.now() - +btn.dataset.armed < 3000) return fn();
+  const old = btn.innerHTML; btn.dataset.armed = Date.now(); btn.classList.add("armed"); btn.textContent = "한 번 더";
+  setTimeout(() => { if (btn.isConnected && btn.dataset.armed) { btn.innerHTML = old; delete btn.dataset.armed; btn.classList.remove("armed"); } }, 3000);
+}
+
+/* ───────── 이벤트 ───────── */
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const act = b.dataset.act, tid = b.closest("[data-tid]")?.dataset.tid, gid = b.closest("[data-gid]")?.dataset.gid;
+  if (S.mode === "wait" && !["leave", "invite"].includes(act)) return toast("방에 연결하는 중입니다.");
+  switch (act) {
+    case "start": return A.start(tid);
+    case "reset": return A.reset(tid);
+    case "minus": return A.adjust(tid, -STEP);
+    case "plus": return A.adjust(tid, STEP);
+    case "mute": return A.mute(tid);
+    case "t-del": return twice(b, () => A.delTimer(tid));
+    case "g-up": return A.moveGroup(gid, -1);
+    case "g-down": return A.moveGroup(gid, 1);
+    case "g-add": return modalAddTimer(gid);
+    case "g-del": return twice(b, () => A.delGroup(gid));
+    case "add-group": return modalAddGroup();
+    case "add-timer": return modalAddTimer();
+    case "gimmick": return A.gimmick();
+    case "example": return A.example();
+    case "save": return modalSave();
+    case "load": return modalLoad();
+    case "invite": return invite();
+    case "reset-all": return twice(b, () => A.resetAll());
+    case "clear-toggle": return A.clearToggle();
+    case "clear-reset": return A.clearReset();
+    case "leave": return leaveRoom();
+    case "memo-edit": {
+      S.editingMemo = true;
+      $("#memo").innerHTML = `<div class="mhead"><span class="lbl">메모</span></div><textarea id="memo-ta" class="num" maxlength="2000"></textarea>
+        <div class="mrow"><button data-act="memo-cancel">취소</button><button data-act="memo-save" class="primary">저장</button></div>`;
+      const ta = $("#memo-ta"); ta.value = S.room.memo; ta.focus(); return;
+    }
+    case "memo-save": A.setMemo($("#memo-ta").value); S.editingMemo = false; return renderMemo();
+    case "memo-cancel": S.editingMemo = false; return renderMemo();
+  }
+});
+
+/* 테마 */
+function isDark() { const a = document.documentElement.dataset.theme; return a ? a === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; }
+function paintTheme() { $("#theme").innerHTML = isDark() ? ICON.sun : ICON.moon; $("#theme").setAttribute("aria-label", isDark() ? "밝게 보기" : "어둡게 보기"); }
+const savedTheme = ls.get("sr.theme", null); if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+$("#theme").onclick = () => { const t = isDark() ? "light" : "dark"; document.documentElement.dataset.theme = t; ls.set("sr.theme", t); paintTheme(); };
+paintTheme();
+
+/* 앱 설치(PWA) */
+let installEvt = null;
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; if (!standalone) $("#install").hidden = false; });
+$("#install").onclick = async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice.catch(() => {}); installEvt = null; $("#install").hidden = true; };
+if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !standalone) $("#ioshint").hidden = false;
+if (!window.FIREBASE_CONFIG) $("#synchint").hidden = false;
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+
+/* 로비 */
+(function initLobby() {
+  const last = ls.get("sr.last", {});
+  const q = new URLSearchParams(location.search).get("room");
+  $("#nick").value = last.nick || "";
+  $("#rcode").value = q || last.code || "";
+  const go = () => {
+    const nick = $("#nick").value.trim(), code = $("#rcode").value.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
+    if (!nick) return $("#lmsg").textContent = "닉네임을 입력하세요.";
+    if (code.length < 4) return $("#lmsg").textContent = "방 코드를 4자 이상 입력하세요. 영문 소문자·숫자·하이픈만 쓸 수 있습니다.";
+    $("#lmsg").textContent = "";
+    unlockAudio(); enterRoom(code.slice(0, 30), nick);
+  };
+  $("#enter").onclick = go;
+  ["#nick", "#rcode"].forEach(s => $(s).addEventListener("keydown", e => { if (e.key === "Enter") go(); }));
+  if (q && last.nick) go(); // 초대 링크 + 저장된 닉네임 → 바로 입장
+})();
+</script>
+</body>
+</html>
